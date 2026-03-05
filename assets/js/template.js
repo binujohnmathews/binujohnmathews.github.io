@@ -1,38 +1,97 @@
-jQuery(document).ready(function($) {
+﻿jQuery(function ($) {
+  var myNav = $(".navbar-sticky");
+  var hasStickyNav = myNav.length > 0;
+  var stickyTop = hasStickyNav ? myNav.offset().top : 0;
 
-	var my_nav = $('.navbar-sticky'); 
-	// grab the initial top offset of the navigation 
-	var sticky_navigation_offset_top = my_nav.offset().top;
-	
-	// our function that decides weather the navigation bar should have "fixed" css position or not.
-	var sticky_navigation = function(){
-		var scroll_top = $(window).scrollTop(); // our current vertical position from the top
-		
-		// if we've scrolled more than the navigation, change its position to fixed to stick to top, otherwise change it back to relative
-		if (scroll_top > sticky_navigation_offset_top) { 
-			my_nav.addClass( 'stick' );
-		} else {
-			my_nav.removeClass( 'stick' );
-		}   
-	};
+  function stickyNavigation() {
+    if (!hasStickyNav) {
+      return;
+    }
 
-	var initio_parallax_animation = function() { 
-		$('.parallax').each( function(i, obj) {
-			var speed = $(this).attr('parallax-speed');
-			if( speed ) {
-				var background_pos = '-' + (window.pageYOffset / speed) + "px";
-				$(this).css( 'background-position', 'center ' + background_pos );
-			}
-		});
-	}
-	
-	// run our function on load
-	sticky_navigation();
-	
-	// and run it again every time you scroll
-	$(window).scroll(function() {
-		 sticky_navigation();
-		 initio_parallax_animation();
-	});
+    if ($(window).scrollTop() > stickyTop) {
+      myNav.addClass("stick");
+    } else {
+      myNav.removeClass("stick");
+    }
+  }
 
+  function initParallaxAnimation() {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    $(".parallax").each(function () {
+      var speed = Number($(this).attr("parallax-speed"));
+      if (!speed) {
+        return;
+      }
+
+      var backgroundPos = "-" + window.pageYOffset / speed + "px";
+      $(this).css("background-position", "center " + backgroundPos);
+    });
+  }
+
+  function initSmoothScroll() {
+    $("a[href^='#']").on("click", function (event) {
+      var target = $(this.getAttribute("href"));
+      if (!target.length) {
+        return;
+      }
+
+      event.preventDefault();
+      var navOffset = myNav.length ? myNav.outerHeight() : 0;
+      var destination = target.offset().top - navOffset + 1;
+
+      $("html, body").animate({ scrollTop: destination }, 500);
+    });
+  }
+
+  function initRevealAnimation() {
+    var revealItems = document.querySelectorAll(".reveal");
+    if (!revealItems.length) {
+      return;
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      revealItems.forEach(function (item) {
+        item.classList.add("in-view");
+      });
+      return;
+    }
+
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("in-view");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.15,
+      }
+    );
+
+    revealItems.forEach(function (item) {
+      observer.observe(item);
+    });
+  }
+
+  stickyNavigation();
+  initParallaxAnimation();
+  initSmoothScroll();
+  initRevealAnimation();
+
+  $(window).on("resize", function () {
+    if (hasStickyNav) {
+      stickyTop = myNav.offset().top;
+      stickyNavigation();
+    }
+  });
+
+  $(window).on("scroll", function () {
+    stickyNavigation();
+    initParallaxAnimation();
+  });
 });
